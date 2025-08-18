@@ -120,7 +120,7 @@ customerRouters.delete('/:id', auth(['admin', 'user']), async (req, res) => {
     ]);
 
     if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Recurso no encontrada.' });
+      return res.status(404).json({ error: 'Recurso no encontrado.' });
     }
 
     return res.status(204).end();
