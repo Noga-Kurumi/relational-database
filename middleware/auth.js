@@ -13,30 +13,36 @@ Otherwise access is denied unless role it is Admin.
 //"roles" is an array containing the roles required to access the method. If the user has at least one of the required roles, they are granted access.
 function auth(roles) {
   return (req, res, next) => {
-    const authHeaders = req.get('authorization');
+    const authHeader = req.get('authorization');
 
-    if (typeof authHeaders !== 'string' || authHeaders === '') {
+    if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({ error: 'Autenticacion invalida.' });
     }
 
-    const token = authHeaders.split(' ')[1];
+    const token = authHeader.slice(7).trim();
+    if (token === '') {
+      return res.status(401).json({ error: 'Autenticacion invalida.' });
+    }
 
-    if (jwt.verify(token, process.env.JWT_SECRET)) {
-      const payload = jwt.decode(token);
+    let payload;
+    try {
+      payload = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(401).json({ error: 'Autenticacion invalida.' });
+    }
 
-      if (roles.includes(payload.role)) {
-        console.log(`Usuario con acceso: ${payload.role}`);
+    req.user = payload;
 
-        if (payload.role === 'user') {
-          const id = Number(req.params.id);
-          if (id === payload.id) {
-            console.log('Acceso concedido.');
-          } else {
-            return res.status(401).json({ error: 'Autenticacion invalida.' });
-          }
+    if (roles.includes(payload.role)) {
+      console.log(`Usuario con acceso: ${payload.role}`);
+
+      if (payload.role === 'user') {
+        const id = Number(req.params.id);
+        if (id === payload.id) {
+          console.log('Acceso concedido.');
+        } else {
+          return res.status(401).json({ error: 'Autenticacion invalida.' });
         }
-      } else {
-        return res.status(401).json({ error: 'Autenticacion invalida.' });
       }
     } else {
       return res.status(401).json({ error: 'Autenticacion invalida.' });
