@@ -62,7 +62,7 @@ customerRouters.post('/', async (req, res) => {
     typeof name !== 'string' ||
     typeof email !== 'string' ||
     typeof password !== 'string' ||
-    typeof role !== 'string'
+    (role !== undefined && typeof role !== 'string')
   ) {
     return res.status(400).json({ error: 'Formato de datos invalido!' });
   }
@@ -70,10 +70,18 @@ customerRouters.post('/', async (req, res) => {
   const trimName = name.trim();
   const trimEmail = email.trim().toLowerCase();
   const trimPassword = password.trim();
-  const trimRole = role.trim();
+  const trimRole =
+    typeof role === 'string' ? role.trim().toLowerCase() : 'user';
 
   if (trimName === '' || trimEmail === '' || trimPassword === '') {
     return res.status(400).json({ error: 'Datos invalidos' });
+  }
+
+  const allowedRoles = ['user', 'admin'];
+  const finalRole = trimRole === '' ? 'user' : trimRole;
+
+  if (!allowedRoles.includes(finalRole)) {
+    return res.status(400).json({ error: 'Rol invalido' });
   }
 
   try {
@@ -84,7 +92,7 @@ customerRouters.post('/', async (req, res) => {
 
     const result = await pool.query(
       'INSERT INTO customers (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-      [trimName, trimEmail, password_hash, trimRole]
+      [trimName, trimEmail, password_hash, finalRole]
     );
     return res.status(201).json(result.rows[0]);
   } catch (err) {
