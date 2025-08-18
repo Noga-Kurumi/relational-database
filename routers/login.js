@@ -16,7 +16,7 @@ loginRouters.post('/', async (req, res) => {
   const trimEmail = email.trim().toLowerCase();
   const trimPassword = password.trim();
 
-  if (email === '' || password === '') {
+  if (trimEmail === '' || trimPassword === '') {
     return res.status(400).json({ error: 'Datos vacios.' });
   }
 
@@ -29,7 +29,7 @@ loginRouters.post('/', async (req, res) => {
     if (result.rowCount === 0) {
       console.error('Email no encontrado.');
       return res
-        .status(403)
+        .status(401)
         .json({ error: 'Usuarios o contraseña incorrectos.' });
     }
 
@@ -40,7 +40,7 @@ loginRouters.post('/', async (req, res) => {
     if (!matchPassword) {
       console.error('Contraseña incorrecta.');
       return res
-        .status(403)
+        .status(401)
         .json({ error: 'Usuarios o contraseña incorrectos.' });
     }
 
