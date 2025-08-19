@@ -1,4 +1,5 @@
 const express = require('express');
+const { errorHandler, notFoundHandler } = require('./middleware/errors.js');
 require('dotenv').config();
 
 const app = express();
@@ -12,6 +13,9 @@ app.use('/api/customers/', customerRouters);
 //Router responsible for login users and return JWT
 const { loginRouters } = require('./routers/login.js');
 app.use('/api/login/', loginRouters);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 //Porting and listening
 const PORT = process.env.PORT || 3000;
