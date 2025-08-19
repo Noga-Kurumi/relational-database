@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../database/pool.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
+const { EMAIL_REGEX, MIN_PASSWORD_LENGTH } = require('../middleware/validators.js');
 
 const loginRouters = express.Router();
 
@@ -21,6 +22,18 @@ loginRouters.post(
 
     if (trimEmail === '' || trimPassword === '') {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Datos del body vacios');
+    }
+
+    if (!EMAIL_REGEX.test(trimEmail)) {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Email invalido.');
+    }
+
+    if (trimPassword.length < MIN_PASSWORD_LENGTH) {
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+      );
     }
 
     const result = await pool.query(
