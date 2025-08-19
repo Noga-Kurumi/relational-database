@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const { ApiError } = require('../middleware/errors.js');
 
 /*
 Auth module verify if the user has Admin role or ID matching with ID request.
@@ -16,19 +17,23 @@ function auth(roles) {
     const authHeader = req.get('authorization');
 
     if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ error: 'Autenticacion invalida.' });
+      throw new ApiError(401, 'VALIDATION_ERROR', 'Autenticacion invalida.');
     }
 
     const token = authHeader.slice(7).trim();
     if (token === '') {
-      return res.status(401).json({ error: 'Autenticacion invalida.' });
+      throw new ApiError(401, 'VALIDATION_ERROR', 'Autenticacion invalida.');
+    }
+
+    if (!Array.isArray(roles)) {
+      throw new ApiError(500, 'INTERNAL_ERROR', '"roles" no es un array.');
     }
 
     let payload;
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      return res.status(401).json({ error: 'Autenticacion invalida.' });
+      throw new ApiError(401, 'VALIDATION_ERROR', 'Autenticacion invalida.');
     }
 
     req.user = payload;
@@ -41,11 +46,11 @@ function auth(roles) {
         if (id === payload.id) {
           console.log('Acceso concedido.');
         } else {
-          return res.status(401).json({ error: 'Autenticacion invalida.' });
+          throw new ApiError(403, 'VALIDATION_ERROR', 'Permiso insuficiente');
         }
       }
     } else {
-      return res.status(401).json({ error: 'Autenticacion invalida.' });
+      throw new ApiError(403, 'VALIDATION_ERROR', 'Permiso insuficiente');
     }
     next();
   };

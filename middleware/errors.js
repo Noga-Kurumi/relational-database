@@ -56,7 +56,7 @@ function errorHandler(err, _req, res, _next) {
   res.status(status).json(payload);
 }
 
-function notFoundHandler(_res, _res, next) {
+function notFoundHandler(_req, _res, next) {
   next(new ApiError(404, 'NOT_FOUND', 'Ruta no encontrada'));
 }
 

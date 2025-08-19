@@ -108,11 +108,19 @@ customerRouters.delete(
     const id = Number(req.params.id);
 
     if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new Error(400, 'VALIDATION_ERROR', 'El ID no es un numero entero.');
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        'El ID no es un numero entero.'
+      );
     }
 
     if (id < 1) {
-      throw new Error(400, 'VALIDATION_ERROR', 'El ID es un numero negativo.');
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        'El ID es un numero negativo.'
+      );
     }
 
     const result = await pool.query('DELETE FROM customers WHERE id = $1', [
