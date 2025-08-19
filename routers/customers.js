@@ -3,6 +3,11 @@ const bcrypt = require('bcrypt');
 const { auth } = require('../middleware/auth.js');
 const { pool } = require('../database/pool.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
+const {
+  EMAIL_REGEX,
+  ALLOWED_ROLES,
+  MIN_PASSWORD_LENGTH,
+} = require('../middleware/validators.js');
 
 const customerRouters = express.Router();
 
@@ -85,6 +90,22 @@ customerRouters.post(
       trimRole === ''
     ) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Datos vacios.');
+    }
+
+    if (!EMAIL_REGEX.test(trimEmail)) {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Email invalido.');
+    }
+
+    if (trimPassword.length < MIN_PASSWORD_LENGTH) {
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+      );
+    }
+
+    if (!ALLOWED_ROLES.includes(trimRole)) {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Rol invalido.');
     }
 
     const password_hash = await bcrypt.hash(
