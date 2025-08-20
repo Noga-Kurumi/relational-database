@@ -3,10 +3,7 @@ const bcrypt = require('bcrypt');
 const { auth } = require('../middleware/auth.js');
 const { pool } = require('../database/pool.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
-const {
-  EMAIL_REGEX,
-  MIN_PASSWORD_LENGTH,
-} = require('../middleware/validators.js');
+const { customerScheme, idScheme } = require('../middleware/validators.js');
 
 const customerRouters = express.Router();
 
@@ -28,25 +25,13 @@ customerRouters.get(
   '/:id',
   auth(['admin', 'user']),
   asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
+    const { error, value } = idScheme.validate(req.params);
 
-    if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'ID Invalido',
-        'El ID no es un numero entero.'
-      );
+    if (error) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    if (id < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'ID Invalido',
-        'El ID es un numero negativo.'
-      );
-    }
+    const id = value.id;
 
     const result = await pool.query(
       'SELECT name, email FROM customers WHERE id = $1',
@@ -66,72 +51,47 @@ customerRouters.patch(
   '/:id',
   auth(['admin', 'user']),
   asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
-    const { name, email, password } = req.body;
+    const { errorID, valueID } = idScheme.validate(req.params);
 
-    if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID no es un numero entero.'
-      );
+    if (errorID) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    if (id < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID es un numero negativo.'
-      );
+    const id = valueID.id;
+
+    const { errorBody, valueBody } = customerScheme.validate(req.body);
+
+    if (errorBody) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
     let newName = undefined;
     let newEmail = undefined;
     let newPassword = undefined;
 
-    if (name !== undefined) {
-      const trimName = name.trim();
-      if (trimName !== '') {
-        newName = trimName;
-      } else {
-        throw new ApiError(
-          400,
-          'VALIDATION_ERROR',
-          'Nombre invalido o indefinido.'
-        );
-      }
+    if (valueBody.name !== undefined) {
+      const trimName = valueBody.name.trim();
+      newName = trimName;
     }
 
-    if (email !== undefined) {
-      const trimEmail = name.trim().toLowerCase();
-      if (EMAIL_REGEX.test(trimEmail)) {
-        newEmail = trimEmail;
-      } else {
-        throw new ApiError(
-          400,
-          'VALIDATION_ERROR',
-          'Email invalido o indefinido.'
-        );
-      }
+    if (valueBody.email !== undefined) {
+      const trimEmail = valueBody.name.trim().toLowerCase();
+      newEmail = trimEmail;
     }
 
-    if (password !== undefined) {
-      const trimPassword = password.trim();
-      if (trimPassword.length > MIN_PASSWORD_LENGTH) {
-        newPassword = await bcrypt.hash(
-          trimPassword,
-          Number(process.env.BCRYPT_SALT)
-        );
-      } else {
-        throw new ApiError(
-          400,
-          'VALIDATION_ERROR',
-          'Contraseña invalida o indefinida.'
-        );
-      }
+    if (valueBody.password !== undefined) {
+      const trimPassword = valueBody.password.trim();
+      newPassword = await bcrypt.hash(
+        trimPassword,
+        Number(process.env.BCRYPT_SALT)
+      );
     }
 
-    if (name == undefined && price == undefined && stock == undefined) {
+    if (
+      valueBody.name == undefined &&
+      valueBody.price == undefined &&
+      valueBody.stock == undefined
+    ) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Body vacio.');
     }
 
@@ -154,23 +114,13 @@ customerRouters.delete(
   '/:id',
   auth(['admin', 'user']),
   asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
+    const { error, value } = idScheme.validate(req.params);
 
-    if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID no es un numero entero.'
-      );
+    if (error) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    if (id < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID es un numero negativo.'
-      );
-    }
+    const id = value.id;
 
     const result = await pool.query('DELETE FROM customers WHERE id = $1', [
       id,

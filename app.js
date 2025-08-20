@@ -1,10 +1,23 @@
-const express = require('express');
-const { errorHandler, notFoundHandler } = require('./middleware/errors.js');
 require('dotenv').config();
+const express = require('express');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
+const { errorHandler, notFoundHandler } = require('./middleware/errors.js');
 
 const app = express();
 
 app.use(express.json());
+
+app.use(helmet());
+
+app.use(
+  rateLimit({
+    windowsMs: 15 * 60 * 1000,
+    max: 300,
+    standartHeaders: true,
+    legacyHeaders: false,
+  })
+);
 
 //Router responsible for managing user path requests
 const { customerRouters } = require('./routers/customers.js');

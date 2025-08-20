@@ -1,5 +1,33 @@
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const ALLOWED_ROLES = ['admin', 'user'];
-const MIN_PASSWORD_LENGTH = 8;
+const Joi = require('joi');
 
-module.exports = { EMAIL_REGEX, ALLOWED_ROLES, MIN_PASSWORD_LENGTH };
+const ALLOWED_ROLES = ['admin', 'user'];
+
+const signupScheme = Joi.object({
+  name: Joi.string().min(2).max(15).required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).max(30).required(),
+  role: Joi.string().required(),
+});
+
+const loginScheme = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().min(8).max(30).required(),
+});
+
+const customerScheme = Joi.object({
+  name: Joi.string().min(2).max(15),
+  email: Joi.string().email(),
+  password: Joi.string().min(8).max(30),
+});
+
+const idScheme = Joi.object({
+  id: Joi.number().integer().positive().required(),
+});
+
+module.exports = {
+  ALLOWED_ROLES,
+  signupScheme,
+  loginScheme,
+  customerScheme,
+  idScheme,
+};

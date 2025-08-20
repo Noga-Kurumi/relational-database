@@ -3,10 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { pool } = require('../database/pool.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
-const {
-  EMAIL_REGEX,
-  MIN_PASSWORD_LENGTH,
-} = require('../middleware/validators.js');
+const { loginScheme, signupScheme } = require('../middleware/validators.js');
 
 const loginRouters = express.Router();
 
@@ -14,30 +11,14 @@ const loginRouters = express.Router();
 loginRouters.post(
   '/',
   asyncHandler(async (req, res) => {
-    const { email, password } = req.body;
+    const { error, value } = loginScheme.validate(req.body);
 
-    if (typeof email !== 'string' || typeof password !== 'string') {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Datos del body invalidos');
+    if (error) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    const trimEmail = email.trim().toLowerCase();
-    const trimPassword = password.trim();
-
-    if (trimEmail === '' || trimPassword === '') {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Datos del body vacios');
-    }
-
-    if (!EMAIL_REGEX.test(trimEmail)) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Email invalido.');
-    }
-
-    if (trimPassword.length < MIN_PASSWORD_LENGTH) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
-      );
-    }
+    const trimEmail = value.email.trim().toLowerCase();
+    const trimPassword = value.password.trim();
 
     const result = await pool.query(
       'SELECT id, email, password_hash, role FROM customers WHERE email = $1',
@@ -83,43 +64,15 @@ loginRouters.post(
 loginRouters.post(
   '/signup',
   asyncHandler(async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const { error, value } = signupScheme.validate(req.body);
 
-    if (
-      typeof name !== 'string' ||
-      typeof email !== 'string' ||
-      typeof password !== 'string' ||
-      (role !== undefined && typeof role !== 'string')
-    ) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Datos del body invalidos');
+    if (error) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    const trimName = name.trim();
-    const trimEmail = email.trim().toLowerCase();
-    const trimPassword = password.trim();
-    const trimRole =
-      typeof role === 'string' ? role.trim().toLowerCase() : 'user';
-
-    if (
-      trimName === '' ||
-      trimEmail === '' ||
-      trimPassword === '' ||
-      trimRole === ''
-    ) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Datos vacios.');
-    }
-
-    if (!EMAIL_REGEX.test(trimEmail)) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Email invalido.');
-    }
-
-    if (trimPassword.length < MIN_PASSWORD_LENGTH) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
-      );
-    }
+    const trimName = value.name.trim();
+    const trimEmail = value.email.trim().toLowerCase();
+    const trimPassword = value.password.trim();
 
     const password_hash = await bcrypt.hash(
       trimPassword,
@@ -128,7 +81,7 @@ loginRouters.post(
 
     const result = await pool.query(
       'INSERT INTO customers (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-      [trimName, trimEmail, password_hash, trimRole]
+      [trimName, trimEmail, password_hash, value.role]
     );
     return res.status(201).json(result.rows[0]);
   })
