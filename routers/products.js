@@ -23,7 +23,7 @@ productsRouters.get(
 productsRouters.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const { error, value } = idScheme.validate(req.params.id);
+    const { error, value } = idScheme.validate(req.params);
 
     if (error) {
       throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
