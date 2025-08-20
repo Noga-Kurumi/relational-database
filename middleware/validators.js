@@ -24,10 +24,24 @@ const idScheme = Joi.object({
   id: Joi.number().integer().positive().required(),
 });
 
+const productScheme = Joi.object({
+  name: Joi.string().min(2).max(25).required(),
+  price: Joi.number().min(1).positive().required(),
+  stock: Joi.number().positive().required(),
+});
+
+const updateProductScheme = Joi.object({
+  name: Joi.string().min(2).max(25),
+  price: Joi.number().min(1).positive(),
+  stock: Joi.number().positive(),
+});
+
 module.exports = {
   ALLOWED_ROLES,
   signupScheme,
   loginScheme,
   customerScheme,
   idScheme,
+  productScheme,
+  updateProductScheme,
 };

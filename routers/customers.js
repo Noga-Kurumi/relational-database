@@ -51,36 +51,36 @@ customerRouters.patch(
   '/:id',
   auth(['admin', 'user']),
   asyncHandler(async (req, res) => {
-    const { errorID, valueID } = idScheme.validate(req.params);
+    const { error: errId, value: valParams } = idScheme.validate(req.params);
 
-    if (errorID) {
-      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
+    if (errId) {
+      throw new ApiError(400, 'VALIDATION_ERROR', errId.details[0].message);
     }
 
-    const id = valueID.id;
+    const id = valParams.id;
 
-    const { errorBody, valueBody } = customerScheme.validate(req.body);
+    const { error: errBody, value: body } = customerScheme.validate(req.body);
 
-    if (errorBody) {
-      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
+    if (errBody) {
+      throw new ApiError(400, 'VALIDATION_ERROR', errBody.details[0].message);
     }
 
     let newName = undefined;
     let newEmail = undefined;
     let newPassword = undefined;
 
-    if (valueBody.name !== undefined) {
-      const trimName = valueBody.name.trim();
+    if (body.name !== undefined) {
+      const trimName = body.name.trim();
       newName = trimName;
     }
 
-    if (valueBody.email !== undefined) {
-      const trimEmail = valueBody.name.trim().toLowerCase();
+    if (body.email !== undefined) {
+      const trimEmail = body.name.trim().toLowerCase();
       newEmail = trimEmail;
     }
 
-    if (valueBody.password !== undefined) {
-      const trimPassword = valueBody.password.trim();
+    if (body.password !== undefined) {
+      const trimPassword = body.password.trim();
       newPassword = await bcrypt.hash(
         trimPassword,
         Number(process.env.BCRYPT_SALT)
@@ -88,9 +88,9 @@ customerRouters.patch(
     }
 
     if (
-      valueBody.name == undefined &&
-      valueBody.price == undefined &&
-      valueBody.stock == undefined
+      body.name == undefined &&
+      body.price == undefined &&
+      body.stock == undefined
     ) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Body vacio.');
     }

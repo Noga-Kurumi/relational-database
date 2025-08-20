@@ -1,7 +1,12 @@
 const express = require('express');
 const { pool } = require('../database/pool.js');
-const { asyncHandler, ApiError } = require('../middleware/errors');
 const { auth } = require('../middleware/auth.js');
+const {
+  idScheme,
+  productScheme,
+  updateProductScheme,
+} = require('../middleware/validators.js');
+const { asyncHandler, ApiError } = require('../middleware/errors');
 
 const productsRouters = express.Router();
 
@@ -18,23 +23,13 @@ productsRouters.get(
 productsRouters.get(
   '/:id',
   asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
+    const { error, value } = idScheme.validate(req.params.id);
 
-    if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID no es un numero entero.'
-      );
+    if (error) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    if (id < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID es un numero negativo.'
-      );
-    }
+    const id = value.id;
 
     const result = await pool.query('SELECT * FROM products WHERE id = $1', [
       id,
@@ -53,49 +48,22 @@ productsRouters.post(
   '/',
   auth(['admin']),
   asyncHandler(async (req, res) => {
-    const { name, price, stock } = req.body;
+    const { error, value } = productScheme.validate(req.body);
 
-    if (
-      typeof name !== 'string' ||
-      typeof price !== 'number' ||
-      typeof stock !== 'number'
-    ) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Formato de body invalido');
+    if (error) {
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    const trimName = name.trim();
-
-    if (
-      trimName === '' ||
-      Number.isNaN(price) ||
-      !Number.isInteger(price) ||
-      Number.isNaN(stock) ||
-      !Number.isInteger(stock)
-    ) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'Datos del body invalidos o vacios.'
-      );
-    }
-
-    if (price < 1 || stock < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'Precio o stock inferior a 1'
-      );
-    }
-
-    const findName = await pool.query(
-      'SELECT * FROM products WHERE name = $1',
-      [trimName]
-    );
+    const trimName = value.name.trim();
 
     const result = await pool.query(
       'INSERT INTO products (name, price, stock) VALUES ($1, $2, $3) RETURNING id, name, price, stock',
-      [trimName, price, stock]
+      [trimName, value.price, value.stock]
     );
+
+    if (result.rowCount === 0) {
+      throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
+    }
 
     console.log('Nuevo producto añadido.');
     return res.status(201).json(result.rows[0]);
@@ -107,24 +75,23 @@ productsRouters.patch(
   '/:id',
   auth(['admin']),
   asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
-    const { name, price, stock } = req.body;
+    const { error: errId, value: valParams } = idScheme.validate(req.params);
 
-    if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID no es un numero entero.'
-      );
+    if (errId) {
+      throw new ApiError(400, 'VALIDATION_ERROR', errId.details[0].message);
     }
 
-    if (id < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID es un numero negativo.'
-      );
+    const id = valParams.id;
+
+    const { error: errBody, value: valBody } = updateProductScheme.validate(
+      req.body
+    );
+
+    if (errBody) {
+      throw new ApiError(400, 'VALIDATION_ERROR', errBody.details[0].message);
     }
+
+    const { name, price, stock } = valBody;
 
     let newName = undefined;
     let newPrice = undefined;
@@ -132,39 +99,15 @@ productsRouters.patch(
 
     if (name !== undefined) {
       const trimName = name.trim();
-      if (trimName !== '') {
-        newName = trimName;
-      } else {
-        throw new ApiError(
-          400,
-          'VALIDATION_ERROR',
-          'Nombre invalido o indefinido.'
-        );
-      }
+      newName = trimName;
     }
 
     if (price !== undefined) {
-      if (Number.isInteger(price) && !Number.isNaN(price) && price > 0) {
-        newPrice = price;
-      } else {
-        throw new ApiError(
-          400,
-          'VALIDATION_ERROR',
-          'Precio invalido o indefinido'
-        );
-      }
+      newPrice = price;
     }
 
     if (stock !== undefined) {
-      if (Number.isInteger(stock) && !Number.isNaN(stock) && stock > 0) {
-        newStock = stock;
-      } else {
-        throw new ApiError(
-          400,
-          'VALIDATION_ERROR',
-          'Precio invalido o indefinido'
-        );
-      }
+      newStock = stock;
     }
 
     if (name == undefined && price == undefined && stock == undefined) {
@@ -189,23 +132,13 @@ productsRouters.delete(
   '/:id',
   auth(['admin']),
   asyncHandler(async (req, res) => {
-    const id = Number(req.params.id);
+    const { error: errId, value: valParams } = idScheme.validate(req.params);
 
-    if (Number.isNaN(id) || !Number.isInteger(id)) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID no es un numero entero.'
-      );
+    if (errId) {
+      throw new ApiError(400, 'VALIDATION_ERROR', errId.details[0].message);
     }
 
-    if (id < 1) {
-      throw new ApiError(
-        400,
-        'VALIDATION_ERROR',
-        'El ID es un numero negativo.'
-      );
-    }
+    const id = valParams.id;
 
     const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
 
