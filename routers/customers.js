@@ -1,9 +1,9 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const { auth } = require('../middleware/auth.js');
-const { pool } = require('../database/pool.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
 const { customerScheme, idScheme } = require('../middleware/validators.js');
+const prisma = require('../prisma/prisma.js');
 
 const customerRouters = express.Router();
 
@@ -12,11 +12,12 @@ customerRouters.get(
   '/',
   auth(['admin']),
   asyncHandler(async (_req, res) => {
-    const result = await pool.query(
-      'SELECT id, name, email, role FROM customers ORDER BY id'
-    );
+    const customers = await prisma.customers.findMany({
+      select: { id: true, name: true, email: true, role: true },
+      orderBy: { id: 'asc' },
+    });
 
-    return res.json(result.rows);
+    return res.json(customers);
   })
 );
 
@@ -31,18 +32,18 @@ customerRouters.get(
       throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    const id = value.id;
+    const id = Number(value.id);
 
-    const result = await pool.query(
-      'SELECT name, email FROM customers WHERE id = $1',
-      [id]
-    );
+    const customer = await prisma.customers.findUnique({
+      where: { id },
+      select: { name: true, email: true },
+    });
 
-    if (result.rowCount === 0) {
+    if (!customer) {
       throw new ApiError(404, 'NOT_FOUND', 'Cliente no encontrado.');
     }
 
-    return res.json(result.rows[0]);
+    return res.json(customer);
   })
 );
 
@@ -57,7 +58,7 @@ customerRouters.patch(
       throw new ApiError(400, 'VALIDATION_ERROR', errId.details[0].message);
     }
 
-    const id = valParams.id;
+    const id = Number(valParams.id);
 
     const { error: errBody, value: body } = customerScheme.validate(req.body);
 
@@ -65,47 +66,40 @@ customerRouters.patch(
       throw new ApiError(400, 'VALIDATION_ERROR', errBody.details[0].message);
     }
 
-    let newName = undefined;
-    let newEmail = undefined;
-    let newPassword = undefined;
+    let data = {};
 
     if (body.name !== undefined) {
-      const trimName = body.name.trim();
-      newName = trimName;
+      data.name = body.name.trim();
     }
 
     if (body.email !== undefined) {
-      const trimEmail = body.email.trim().toLowerCase();
-      newEmail = trimEmail;
+      data.email = body.email.trim().toLowerCase();
     }
 
     if (body.password !== undefined) {
-      const trimPassword = body.password.trim();
-      newPassword = await bcrypt.hash(
-        trimPassword,
+      data.password_hash = await bcrypt.hash(
+        body.password.trim(),
         Number(process.env.BCRYPT_SALT)
       );
     }
 
-    if (
-      body.name == undefined &&
-      body.email == undefined &&
-      body.password == undefined
-    ) {
+    if (Object.keys(data).length === 0) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Body vacio.');
     }
 
-    const result = await pool.query(
-      'UPDATE customers SET name = COALESCE($1, name), email = COALESCE($2, email), password_hash = COALESCE($3, password_hash) WHERE id = $4 RETURNING id, name, email',
-      [newName, newEmail, newPassword, id]
-    );
-
-    if (result.rowCount === 0) {
+    let updatedCustomer;
+    try {
+      updatedCustomer = await prisma.customers.update({
+        where: { id },
+        data,
+        select: { id: true, name: true, email: true },
+      });
+    } catch (e) {
       throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
     }
 
     console.log('Usuario actualizado.');
-    return res.json(result.rows[0]);
+    return res.json(updatedCustomer);
   })
 );
 
@@ -120,13 +114,13 @@ customerRouters.delete(
       throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
-    const id = value.id;
+    const id = Number(value.id);
 
-    const result = await pool.query('DELETE FROM customers WHERE id = $1', [
-      id,
-    ]);
-
-    if (result.rowCount === 0) {
+    try {
+      await prisma.customers.delete({
+        where: { id },
+      });
+    } catch (e) {
       throw new ApiError(404, 'NOT_FOUND', 'Cliente no encontrado.');
     }
 

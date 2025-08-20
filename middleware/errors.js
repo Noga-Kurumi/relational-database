@@ -25,6 +25,10 @@ function mapPgError(err) {
         'CHECK_VIOLATION',
         'Restricción de datos incumplida'
       );
+    case 'P2002':
+      return new ApiError(409, 'DUPLICATE_KEY', 'Recurso duplicado');
+    case 'P2025':
+      return new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
     default:
       return new ApiError(
         500,

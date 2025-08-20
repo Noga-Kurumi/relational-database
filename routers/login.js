@@ -1,7 +1,7 @@
-const express = require('express');
 const bcrypt = require('bcrypt');
+const express = require('express');
 const jwt = require('jsonwebtoken');
-const { pool } = require('../database/pool.js');
+const prisma = require('../prisma/prisma.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
 const { loginScheme, signupScheme } = require('../middleware/validators.js');
 
@@ -20,12 +20,12 @@ loginRouters.post(
     const trimEmail = value.email.trim().toLowerCase();
     const trimPassword = value.password.trim();
 
-    const result = await pool.query(
-      'SELECT id, email, password_hash, role FROM customers WHERE email = $1',
-      [trimEmail]
-    );
+    const result = await prisma.customers.findUnique({
+      where: { email: trimEmail },
+      select: { id: true, email: true, password_hash: true, role: true },
+    });
 
-    if (result.rowCount === 0) {
+    if (!result) {
       throw new ApiError(
         401,
         'UNAUTHORIZED',
@@ -33,7 +33,7 @@ loginRouters.post(
       );
     }
 
-    const password_hash = result.rows[0].password_hash;
+    const password_hash = result.password_hash;
 
     const matchPassword = await bcrypt.compare(trimPassword, password_hash);
 
@@ -45,7 +45,7 @@ loginRouters.post(
       );
     }
 
-    const user = result.rows[0];
+    const user = result;
 
     const token = jwt.sign(
       { id: user.id, role: user.role },
@@ -79,11 +79,17 @@ loginRouters.post(
       Number(process.env.BCRYPT_SALT)
     );
 
-    const result = await pool.query(
-      'INSERT INTO customers (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-      [trimName, trimEmail, password_hash, value.role]
-    );
-    return res.status(201).json(result.rows[0]);
+    const result = await prisma.customers.create({
+      data: {
+        name: trimName,
+        email: trimEmail,
+        password_hash,
+        role: value.role,
+      },
+      select: { id: true, name: true, email: true, role: true },
+    });
+
+    return res.status(201).json(result);
   })
 );
 

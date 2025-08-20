@@ -1,5 +1,4 @@
 const express = require('express');
-const { pool } = require('../database/pool.js');
 const { auth } = require('../middleware/auth.js');
 const {
   idScheme,
@@ -7,15 +6,20 @@ const {
   updateProductScheme,
 } = require('../middleware/validators.js');
 const { asyncHandler, ApiError } = require('../middleware/errors');
+const prisma = require('../prisma/prisma.js');
 
 const productsRouters = express.Router();
 
 //Get all products
 productsRouters.get(
   '/',
-  asyncHandler(async (req, res) => {
-    const result = await pool.query('SELECT * FROM products');
-    return res.json(result.rows);
+  asyncHandler(async (_req, res) => {
+    const result = await prisma.products.findMany({
+      select: { id: true, name: true, price: true, stock: true },
+      orderBy: { id: 'asc' },
+    });
+
+    return res.json(result);
   })
 );
 
@@ -31,15 +35,16 @@ productsRouters.get(
 
     const id = value.id;
 
-    const result = await pool.query('SELECT * FROM products WHERE id = $1', [
-      id,
-    ]);
+    const result = await prisma.products.findUnique({
+      where: { id },
+      select: { id: true, name: true, price: true, stock: true },
+    });
 
-    if (result.rowCount === 0) {
+    if (!result) {
       throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
     }
 
-    return res.json(result.rows[0]);
+    return res.json(result);
   })
 );
 
@@ -56,17 +61,21 @@ productsRouters.post(
 
     const trimName = value.name.trim();
 
-    const result = await pool.query(
-      'INSERT INTO products (name, price, stock) VALUES ($1, $2, $3) RETURNING id, name, price, stock',
-      [trimName, value.price, value.stock]
-    );
+    const result = await prisma.products.create({
+      data: {
+        name: trimName,
+        price: value.price,
+        stock: value.stock,
+      },
+      select: { name: true, price: true, stock: true },
+    });
 
-    if (result.rowCount === 0) {
+    if (!result) {
       throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
     }
 
     console.log('Nuevo producto añadido.');
-    return res.status(201).json(result.rows[0]);
+    return res.status(201).json(result);
   })
 );
 
@@ -93,38 +102,37 @@ productsRouters.patch(
 
     const { name, price, stock } = valBody;
 
-    let newName = undefined;
-    let newPrice = undefined;
-    let newStock = undefined;
+    let data = {};
 
     if (name !== undefined) {
       const trimName = name.trim();
-      newName = trimName;
+      data.name = trimName;
     }
 
     if (price !== undefined) {
-      newPrice = price;
+      data.price = price;
     }
 
     if (stock !== undefined) {
-      newStock = stock;
+      data.stock = stock;
     }
 
-    if (name == undefined && price == undefined && stock == undefined) {
+    if (Object.keys(data).length === 0) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Body vacio.');
     }
 
-    const result = await pool.query(
-      'UPDATE products SET name = COALESCE($1, name), price = COALESCE($2, price), stock = COALESCE($3, stock) WHERE id = $4 RETURNING id, name, price, stock',
-      [newName, newPrice, newStock, id]
-    );
+    const result = await prisma.products.update({
+      where: { id },
+      data,
+      select: { id: true, name: true, price: true, stock: true },
+    });
 
-    if (result.rowCount === 0) {
+    if (!result) {
       throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
     }
 
     console.log('Producto actualizado.');
-    return res.json(result.rows[0]);
+    return res.json(result);
   })
 );
 
@@ -140,9 +148,11 @@ productsRouters.delete(
 
     const id = valParams.id;
 
-    const result = await pool.query('DELETE FROM products WHERE id = $1', [id]);
+    const result = await prisma.products.delete({
+      where: { id },
+    });
 
-    if (result.rowCount === 0) {
+    if (!result) {
       throw new ApiError(404, 'NOT_FOUND', 'Producto no encontrado.');
     }
 
