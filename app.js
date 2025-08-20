@@ -3,12 +3,15 @@ const express = require('express');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
 const cors = require('cors');
+const morgan = require('morgan');
 const { errorHandler, notFoundHandler } = require('./middleware/errors.js');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+app.use(morgan());
 
 app.use(helmet());
 
