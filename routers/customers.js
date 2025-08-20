@@ -5,7 +5,6 @@ const { pool } = require('../database/pool.js');
 const { ApiError, asyncHandler } = require('../middleware/errors.js');
 const {
   EMAIL_REGEX,
-  ALLOWED_ROLES,
   MIN_PASSWORD_LENGTH,
 } = require('../middleware/validators.js');
 
@@ -62,62 +61,91 @@ customerRouters.get(
   })
 );
 
-//Sign up new user
-customerRouters.post(
-  '/',
+//Update user by ID (Only admin or specific user)
+customerRouters.patch(
+  '/:id',
+  auth(['admin', 'user']),
   asyncHandler(async (req, res) => {
-    const { name, email, password, role } = req.body;
+    const id = Number(req.params.id);
+    const { name, email, password } = req.body;
 
-    if (
-      typeof name !== 'string' ||
-      typeof email !== 'string' ||
-      typeof password !== 'string' ||
-      (role !== undefined && typeof role !== 'string')
-    ) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Datos del body invalidos');
-    }
-
-    const trimName = name.trim();
-    const trimEmail = email.trim().toLowerCase();
-    const trimPassword = password.trim();
-    const trimRole =
-      typeof role === 'string' ? role.trim().toLowerCase() : 'user';
-
-    if (
-      trimName === '' ||
-      trimEmail === '' ||
-      trimPassword === '' ||
-      trimRole === ''
-    ) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Datos vacios.');
-    }
-
-    if (!EMAIL_REGEX.test(trimEmail)) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Email invalido.');
-    }
-
-    if (trimPassword.length < MIN_PASSWORD_LENGTH) {
+    if (Number.isNaN(id) || !Number.isInteger(id)) {
       throw new ApiError(
         400,
         'VALIDATION_ERROR',
-        `La contraseña debe tener al menos ${MIN_PASSWORD_LENGTH} caracteres.`
+        'El ID no es un numero entero.'
       );
     }
 
-    if (!ALLOWED_ROLES.includes(trimRole)) {
-      throw new ApiError(400, 'VALIDATION_ERROR', 'Rol invalido.');
+    if (id < 1) {
+      throw new ApiError(
+        400,
+        'VALIDATION_ERROR',
+        'El ID es un numero negativo.'
+      );
     }
 
-    const password_hash = await bcrypt.hash(
-      trimPassword,
-      Number(process.env.BCRYPT_SALT)
-    );
+    let newName = undefined;
+    let newEmail = undefined;
+    let newPassword = undefined;
+
+    if (name !== undefined) {
+      const trimName = name.trim();
+      if (trimName !== '') {
+        newName = trimName;
+      } else {
+        throw new ApiError(
+          400,
+          'VALIDATION_ERROR',
+          'Nombre invalido o indefinido.'
+        );
+      }
+    }
+
+    if (email !== undefined) {
+      const trimEmail = name.trim().toLowerCase();
+      if (EMAIL_REGEX.test(trimEmail)) {
+        newEmail = trimEmail;
+      } else {
+        throw new ApiError(
+          400,
+          'VALIDATION_ERROR',
+          'Email invalido o indefinido.'
+        );
+      }
+    }
+
+    if (password !== undefined) {
+      const trimPassword = password.trim();
+      if (trimPassword.length > MIN_PASSWORD_LENGTH) {
+        newPassword = await bcrypt.hash(
+          trimPassword,
+          Number(process.env.BCRYPT_SALT)
+        );
+      } else {
+        throw new ApiError(
+          400,
+          'VALIDATION_ERROR',
+          'Contraseña invalida o indefinida.'
+        );
+      }
+    }
+
+    if (name == undefined && price == undefined && stock == undefined) {
+      throw new ApiError(400, 'VALIDATION_ERROR', 'Body vacio.');
+    }
 
     const result = await pool.query(
-      'INSERT INTO customers (name, email, password_hash, role) VALUES ($1, $2, $3, $4) RETURNING id, name, email, role',
-      [trimName, trimEmail, password_hash, trimRole]
+      'UPDATE customers SET name = COALESCE($1, name), email = COALESCE($2, email), password_hash = COALESCE($3, password_hash) WHERE id = $4 RETURNING id, name, email',
+      [newName, newEmail, newPassword, id]
     );
-    return res.status(201).json(result.rows[0]);
+
+    if (result.rowCount === 0) {
+      throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
+    }
+
+    console.log('Usuario actualizado.');
+    return res.json(result.rows[0]);
   })
 );
 

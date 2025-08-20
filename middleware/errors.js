@@ -26,7 +26,12 @@ function mapPgError(err) {
         'Restricción de datos incumplida'
       );
     default:
-      return new ApiError(500, 'DB_ERROR', 'Error en la base de datos');
+      return new ApiError(
+        500,
+        'DB_ERROR',
+        'Error en la base de datos',
+        `ERROR_CODE: ${err.code}`
+      );
   }
 }
 

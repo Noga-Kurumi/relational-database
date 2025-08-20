@@ -14,6 +14,11 @@ app.use('/api/customers/', customerRouters);
 const { loginRouters } = require('./routers/login.js');
 app.use('/api/login/', loginRouters);
 
+//Router responsible for login users and return JWT
+const { productsRouters } = require('./routers/products.js');
+app.use('/api/products/', productsRouters);
+
+//Middleware for error handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
 
