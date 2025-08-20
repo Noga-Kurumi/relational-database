@@ -1,9 +1,11 @@
 const express = require('express');
+const cors = require('cors');
 const { errorHandler, notFoundHandler } = require('./middleware/errors.js');
 require('dotenv').config();
 
 const app = express();
 
+app.use(cors());
 app.use(express.json());
 
 //Router responsible for managing user path requests
