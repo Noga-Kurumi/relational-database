@@ -75,7 +75,7 @@ customerRouters.patch(
     }
 
     if (body.email !== undefined) {
-      const trimEmail = body.name.trim().toLowerCase();
+      const trimEmail = body.email.trim().toLowerCase();
       newEmail = trimEmail;
     }
 
@@ -89,8 +89,8 @@ customerRouters.patch(
 
     if (
       body.name == undefined &&
-      body.price == undefined &&
-      body.stock == undefined
+      body.email == undefined &&
+      body.password == undefined
     ) {
       throw new ApiError(400, 'VALIDATION_ERROR', 'Body vacio.');
     }
