@@ -17,9 +17,9 @@ app.use(helmet());
 
 app.use(
   rateLimit({
-    windowsMs: 15 * 60 * 1000,
+    windowMs: 15 * 60 * 1000,
     max: 300,
-    standartHeaders: true,
+    standardHeaders: true,
     legacyHeaders: false,
   })
 );
