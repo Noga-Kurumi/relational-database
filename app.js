@@ -43,6 +43,14 @@ app.use(errorHandler);
 //Porting and listening
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Servidor escuchando en http://localhost:${PORT}`);
-});
+// Only start the server if this file is run directly. When running tests
+// with Jest, `NODE_ENV` is set to "test" so the server won't listen on a
+// port, allowing Supertest to handle requests directly against the app
+// instance.
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  });
+}
+
+module.exports = app;
