@@ -36,6 +36,10 @@ app.use('/api/login/', loginRouters);
 const { productsRouters } = require('./routers/products.js');
 app.use('/api/products/', productsRouters);
 
+//Router responsible for products orders
+const { ordersRouters } = require('./routers/orders.js');
+app.use('/api/orders/', ordersRouters);
+
 //Middleware for error handlers
 app.use(notFoundHandler);
 app.use(errorHandler);
