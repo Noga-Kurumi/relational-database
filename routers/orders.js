@@ -41,7 +41,7 @@ ordersRouters.get(
     const { error, value } = idScheme.validate(req.params);
 
     if (error) {
-      throw new ApiErrror(400, 'VALIDATION_ERROR', error.details[0].message);
+      throw new ApiError(400, 'VALIDATION_ERROR', error.details[0].message);
     }
 
     const id = Number(value.id);
@@ -57,6 +57,10 @@ ordersRouters.get(
         products: { select: { id: true, name: true, price: true } },
       },
     });
+
+    if (!order) {
+      throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
+    }
 
     res.json(order);
   })
