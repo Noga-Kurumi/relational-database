@@ -1,6 +1,15 @@
-# API de Clientes y Productos
+# API de Clientes, Productos y Pedidos
 
-API REST para gestionar usuarios, autenticación mediante JSON Web Tokens y catálogo de productos. Construida con **Node.js**, **Express 5** y **PostgreSQL** usando **Prisma ORM**.
+API REST para gestionar usuarios, autenticación mediante JSON Web Tokens, catálogo de productos y pedidos. Construida con **Node.js**, **Express 5** y **PostgreSQL** usando **Prisma ORM**.
+
+## Características
+- Autenticación mediante JWT y autorización por roles (`user`, `admin`).
+- Gestión de clientes, productos y pedidos.
+- Hash de contraseñas con bcrypt.
+- Validación de datos con Joi.
+- Seguridad: Helmet, rate limiting, CORS y logging con Morgan.
+- Prisma ORM y base de datos PostgreSQL.
+- Middleware centralizado para manejo de errores.
 
 ## Tecnologías
 - Node.js
@@ -8,14 +17,15 @@ API REST para gestionar usuarios, autenticación mediante JSON Web Tokens y cat�
 - PostgreSQL + Prisma
 - JWT, bcrypt, Joi
 - Helmet, CORS, Express Rate Limit, Morgan
+- Jest y Supertest para pruebas
 
 ## Requisitos
-- Node.js >= 16
+- Node.js ≥ 16
 - PostgreSQL
 - npm
 
 ## Instalación
-1. Clonar el repositorio
+1. Clonar el repositorio.
 2. Instalar dependencias:
    ```bash
    npm install
@@ -41,10 +51,14 @@ API REST para gestionar usuarios, autenticación mediante JSON Web Tokens y cat�
    npx nodemon app.js   # desarrollo
    ```
 
+## Scripts
+- `npm test` – Ejecuta la suite de pruebas con Jest y Supertest.
+
 ## Endpoints
-### Autenticación
-- **POST** `/api/login/` — Inicia sesión y devuelve un token JWT.
-- **POST** `/api/login/signup` — Registra un nuevo usuario (rol por defecto `user`).
+
+### Autenticación (`/api/login`)
+- **POST** `/` — Inicia sesión y devuelve un token JWT.
+- **POST** `/signup` — Registra un nuevo usuario (rol por defecto `user`).
 
 ### Clientes (`/api/customers`)
 - **GET** `/` — Lista todos los usuarios (solo `admin`).
@@ -59,13 +73,12 @@ API REST para gestionar usuarios, autenticación mediante JSON Web Tokens y cat�
 - **PATCH** `/:id` — Actualiza un producto (solo `admin`).
 - **DELETE** `/:id` — Elimina un producto (solo `admin`).
 
-## Características
-- Autenticación mediante JWT y autorización por roles.
-- Hash de contraseñas con bcrypt.
-- Validación de datos con Joi.
-- Seguridad: Helmet, rate limiting y CORS.
-- Prisma ORM y base de datos PostgreSQL.
-- Middleware centralizado para manejo de errores.
+### Pedidos (`/api/orders`)
+- **GET** `/` — Lista todos los pedidos (solo `admin`, filtro `paid` opcional).
+- **GET** `/:id` — Obtiene un pedido por ID (solo `admin`).
+- **POST** `/` — Crea un nuevo pedido y descuenta stock (solo `admin`).
+- **PATCH** `/:id` — Marca un pedido como pagado (solo `admin`).
+- **DELETE** `/:id` — Elimina un pedido (solo `admin`).
 
 ## Licencia
 ISC.
