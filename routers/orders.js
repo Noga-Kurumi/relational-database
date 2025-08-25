@@ -78,54 +78,52 @@ ordersRouters.post(
 
     const { product_id, amount, customer_id } = value;
 
-    const stock = await prisma.products.findUnique({
-      where: { id: product_id },
-      select: { stock: true },
+    const { order, stock } = await prisma.$transaction(async (tx) => {
+      const product = await tx.products.findUnique({
+        where: { id: product_id },
+        select: { stock: true },
+      });
+
+      if (!product) {
+        throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
+      }
+
+      if (product.stock < amount) {
+        throw new ApiError(
+          409,
+          'INSUFFICIENT_STOCK',
+          'Stock insuficiente.',
+          `Stock actual disponible: ${product.stock}`
+        );
+      }
+
+      const newOrder = await tx.orders.create({
+        data: {
+          product_id: product_id,
+          amount: amount,
+          customer_id: customer_id,
+        },
+        select: {
+          id: true,
+          amount: true,
+          customers: { select: { name: true, email: true } },
+          products: { select: { name: true, price: true } },
+          created_at: true,
+        },
+      });
+
+      const updated = await tx.products.update({
+        where: { id: product_id },
+        data: { stock: product.stock - amount },
+        select: { stock: true },
+      });
+
+      return { order: newOrder, stock: updated.stock };
     });
 
-    if (!stock) {
-      throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
-    }
-
-    if (stock.stock < amount) {
-      throw new ApiError(
-        409,
-        'INSUFFICIENT_STOCK',
-        'Stock insuficiente.',
-        `Stock actual disponible: ${stock.stock}`
-      );
-    }
-
-    const result = await prisma.orders.create({
-      data: {
-        product_id: product_id,
-        amount: amount,
-        customer_id: customer_id,
-      },
-      select: {
-        id: true,
-        amount: true,
-        customers: { select: { name: true, email: true } },
-        products: { select: { name: true, price: true } },
-        created_at: true,
-      },
-    });
-
-    if (!result) {
-      throw new ApiError(404, 'NOT_FOUND', 'Recurso no encontrado.');
-    }
-
-    const updatedStock = stock.stock - amount;
-
-    const newStock = await prisma.products.update({
-      where: { id: product_id },
-      data: { stock: updatedStock },
-      select: { stock: true },
-    });
-
-    console.log(`Nuevo stock: ${newStock.stock}`);
+    console.log(`Nuevo stock: ${stock}`);
     console.log('Nueva orden añadido.');
-    return res.status(201).json(result);
+    return res.status(201).json(order);
   })
 );
 
