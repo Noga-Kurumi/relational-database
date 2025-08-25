@@ -17,12 +17,20 @@ function auth(roles) {
     const authHeader = req.get('authorization');
 
     if (typeof authHeader !== 'string' || !authHeader.startsWith('Bearer ')) {
-      throw new ApiError(401, 'VALIDATION_ERROR', 'Autenticacion invalida.');
+      throw new ApiError(
+        401,
+        'AUTHENTICATION_ERROR',
+        'Autenticacion invalida.'
+      );
     }
 
     const token = authHeader.slice(7).trim();
     if (token === '') {
-      throw new ApiError(401, 'VALIDATION_ERROR', 'Autenticacion invalida.');
+      throw new ApiError(
+        401,
+        'AUTHENTICATION_ERROR',
+        'Autenticacion invalida.'
+      );
     }
 
     if (!Array.isArray(roles)) {
@@ -33,7 +41,11 @@ function auth(roles) {
     try {
       payload = jwt.verify(token, process.env.JWT_SECRET);
     } catch (err) {
-      throw new ApiError(401, 'VALIDATION_ERROR', 'Autenticacion invalida.');
+      throw new ApiError(
+        401,
+        'AUTHENTICATION_ERROR',
+        'Autenticacion invalida.'
+      );
     }
 
     req.user = payload;
@@ -46,11 +58,15 @@ function auth(roles) {
         if (id === payload.id) {
           console.log('Acceso concedido.');
         } else {
-          throw new ApiError(403, 'VALIDATION_ERROR', 'Permiso insuficiente');
+          throw new ApiError(
+            403,
+            'AUTHENTICATION_ERROR',
+            'Permiso insuficiente'
+          );
         }
       }
     } else {
-      throw new ApiError(403, 'VALIDATION_ERROR', 'Permiso insuficiente');
+      throw new ApiError(403, 'AUTHENTICATION_ERROR', 'Permiso insuficiente');
     }
     next();
   };

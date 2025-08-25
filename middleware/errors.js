@@ -59,7 +59,11 @@ function errorHandler(err, _req, res, _next) {
 
   const status = 500;
   const payload = {
-    error: { message: 'Error interno en el servidor.', code: 'INTERNAL_ERROR' },
+    error: {
+      message: 'Error interno en el servidor.',
+      code: 'INTERNAL_ERROR',
+      err,
+    },
   };
 
   res.status(status).json(payload);

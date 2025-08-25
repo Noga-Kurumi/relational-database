@@ -33,7 +33,13 @@ const productScheme = Joi.object({
 const updateProductScheme = Joi.object({
   name: Joi.string().min(2).max(25),
   price: Joi.number().min(1).positive(),
-  stock: Joi.number().positive(),
+  stock: Joi.number().positive().integer(),
+});
+
+const orderScheme = Joi.object({
+  product_id: Joi.number().positive().integer().required(),
+  amount: Joi.number().positive().min(1).integer().required(),
+  customer_id: Joi.number().positive().integer().required(),
 });
 
 module.exports = {
@@ -44,4 +50,5 @@ module.exports = {
   idScheme,
   productScheme,
   updateProductScheme,
+  orderScheme,
 };
